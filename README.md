@@ -56,10 +56,10 @@ The server will listen on port 8080 on all network interfaces (0.0.0.0:8080).
 **Connect from your IP address (same machine or network):**
 ```bash
 # Replace with your actual IP address
-./client 10.183.102.46
+./client 10.156.123.57
 
 # Or with a custom port:
-./client 10.183.102.46 8080
+./client 10.156.123.57 8080
 ```
 
 **Connect from another machine on the network:**
