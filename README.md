@@ -12,17 +12,19 @@ A concurrent ticket reservation server and client implementation in C using POSI
 
 ## Protocol
 
-### Client Commands
+### Client Commands (case-insensitive)
 
-- `AVAILABLE` - Query list of currently available seats
-- `BOOK n s1 s2 ...` - Book `n` seats with numbers `s1, s2, ...` (atomic operation)
-- `EXIT` - Disconnect gracefully
+- `AVAILABLE` / `avail` / `a` - Query list of currently available seats (shows visual map)
+- `BOOK n s1 s2 ...` / `book` / `b` - Book `n` seats with numbers `s1, s2, ...` (atomic operation)
+- `CANCEL n s1 s2 ...` / `cancel` / `c` - Cancel `n` booked seats with numbers `s1, s2, ...` (atomic operation). **You can only cancel seats you booked yourself.**
+- `EXIT` / `quit` / `q` - Disconnect gracefully
 
 ### Server Responses
 
 - `AVAILABLE <seat_list>` - List of available seat numbers (or `NONE`)
 - `OK BOOKED <seat_list>` - Successfully booked seats
-- `FAIL <reason>` - Booking failed with reason
+- `OK CANCELLED <seat_list>` - Successfully cancelled seats
+- `FAIL <reason>` - Operation failed with reason
 
 ## Compilation
 
@@ -78,38 +80,74 @@ ip addr show | grep "inet "
 # The server will show client IPs in its logs when clients connect
 ```
 
-Then enter commands interactively:
+Then enter commands interactively (all commands are case-insensitive):
 ```
-> AVAILABLE
-> BOOK 2 5 10
-> AVAILABLE
-> EXIT
+> available          # or 'a' or 'avail'
+> book 2 5 10        # or 'BOOK 2 5 10'
+> available
+> cancel 1 5         # Cancel seat 5
+> exit               # or 'q' or 'quit'
 ```
 
 ## Sample Session
 
 ```
 # Client 1
-> AVAILABLE
-Server: AVAILABLE 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+> available
+[Visual seat map displayed showing all 20 seats available]
 
-> BOOK 2 5 10
+> book 2 5 10
 Server: OK BOOKED 5 10
 
-> AVAILABLE
-Server: AVAILABLE 1 2 3 4 6 7 8 9 11 12 13 14 15 16 17 18 19 20
+> available
+[Visual seat map showing seats 5 and 10 as booked]
 
-> EXIT
+> cancel 1 5
+Server: OK CANCELLED 5
+
+> available
+[Visual seat map showing seat 5 available again, seat 10 still booked]
+
+> exit
 ```
 
 ```
 # Client 2 (simultaneous)
-> BOOK 1 5
+> book 1 5
 Server: FAIL seat 5 already booked
 
-> BOOK 3 1 2 3
+> book 3 1 2 3
 Server: OK BOOKED 1 2 3
+
+> cancel 2 1 2
+Server: OK CANCELLED 1 2
+
+# Client 3 tries to cancel Client 2's seat
+> cancel 1 3
+Server: FAIL seat 3 was not booked by you. You can only cancel your own bookings.
 ```
+
+## Stopping the Server
+
+To gracefully shutdown the server:
+
+1. **Press Ctrl+C** in the terminal where the server is running
+   - The server will close all connections and exit cleanly
+
+2. **Or find and kill the process:**
+   ```bash
+   # Find the server process
+   ps aux | grep server
+   
+   # Kill it (replace PID with actual process ID)
+   kill <PID>
+   
+   # Or force kill if needed
+   kill -9 <PID>
+   
+   # Or kill by port
+   kill $(lsof -ti :8080)
+   ```
 
 ## Testing Concurrent Access
 
